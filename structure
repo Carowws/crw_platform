@@ -1,0 +1,135 @@
+import pgzrun
+from random import randint
+
+# Configurações da Janela
+WIDTH = 800  # Largura
+HEIGHT = 400  # Altura
+TITLE = "Meu Jogo Platformer"  # Título da janela
+
+# Variáveis e Estados do Jogo
+game_active = False  # Começa no menu principal
+music_on = True  # Música ativada por padrão
+
+# Sprites e Sons
+player = Actor("player_stand", (100, 300))  # Personagem inicial
+ground_level = HEIGHT - 50  # Nível do chão (posição Y)
+
+# Funções do Menu
+def draw():
+    screen.clear()
+
+    if not game_active:
+        # Tela de Menu
+        screen.draw.text("MENU PRINCIPAL", center=(WIDTH//2, HEIGHT//4), fontsize=50, color="white")
+        screen.draw.text("[S] - Start Game", center=(WIDTH//2, HEIGHT//2), fontsize=30, color="yellow")
+        screen.draw.text("[M] - Música: {}".format("ON" if music_on else "OFF"), center=(WIDTH//2, HEIGHT//2 + 40), fontsize=30, color="yellow")
+        screen.draw.text("[Q] - Quit Game", center=(WIDTH//2, HEIGHT//2 + 80), fontsize=30, color="yellow")
+    else:
+        # Tela do Jogo Ativo
+        screen.blit("background", (0, 0))
+        player.draw()
+        screen.draw.text("Jogo em Andamento!", (10, 10), color="white")
+
+def update():
+    global game_active, music_on
+
+    if not game_active:  # Se estiver no menu
+        if keyboard.s:  # Iniciar o jogo
+            game_active = True
+            if music_on:
+                music.play("background_music")
+
+        elif keyboard.m:  # Ativar/Desativar música
+            music_on = not music_on
+            if music_on:
+                music.play("background_music")
+            else:
+                music.stop()
+
+        elif keyboard.q:  # Sair do jogo
+            exit()
+    else:
+        handle_player_movement()
+
+def handle_player_movement():
+    if keyboard.right:
+        player.x += 4  # Move para a direita
+    if keyboard.left:
+        player.x -= 4  # Move para a esquerda
+    if keyboard.up and player.y >= ground_level:
+        player.y -= 10  # Pula se estiver no chão
+    player.y += 3  # Gravidade básica
+
+    # Impede que o personagem caia abaixo do chão
+    if player.y >= ground_level:
+        player.y = ground_level
+
+pgzrun.go()
+
+                          # Classe para Inimigo
+class Enemy(Actor):
+    def __init__(self, image, pos):
+        super().__init__(image, pos)
+        self.speed = randint(2, 4)  # Velocidade do inimigo
+
+    def update(self):
+        # Movimento aleatório do inimigo
+        self.x += self.speed
+        if self.x >= WIDTH or self.x <= 0:
+            self.speed = -self.speed  # Inverte a direção
+
+                        # Inimigos do jogo
+enemies = [Enemy("enemy_image", (200, 300)), Enemy("enemy_image", (500, 300))]
+
+def update():
+    global game_active, music_on
+
+    if not game_active:
+        if keyboard.s:
+            game_active = True
+            if music_on:
+                music.play("background_music")
+        elif keyboard.m:
+            music_on = not music_on
+            if music_on:
+                music.play("background_music")
+            else:
+                music.stop()
+        elif keyboard.q:
+            exit()
+    else:
+        handle_player_movement()
+        for enemy in enemies:
+            enemy.update()  # Atualiza a posição do inimigo
+
+# Animação do herói
+class Hero(Actor):
+    def __init__(self, image, pos):
+        super().__init__(image, pos)
+        self.walking = False
+        self.frame = 0
+        self.images = ["player_stand", "player_run1", "player_run2"]
+
+    def update(self):
+        if self.walking:
+            self.frame += 1
+            if self.frame >= len(self.images):
+                self.frame = 0
+            self.image = self.images[self.frame]
+
+def draw():
+    screen.clear()
+
+    if not game_active:
+        # Menu Principal
+        screen.draw.text("MENU PRINCIPAL", center=(WIDTH//2, HEIGHT//4), fontsize=50, color="white")
+        screen.draw.text("[S] - Start Game", center=(WIDTH//2, HEIGHT//2), fontsize=30, color="yellow")
+        screen.draw.text("[M] - Música: {}".format("ON" if music_on else "OFF"), center=(WIDTH//2, HEIGHT//2 + 40), fontsize=30, color="yellow")
+        screen.draw.text("[Q] - Quit Game", center=(WIDTH//2, HEIGHT//2 + 80), fontsize=30, color="yellow")
+    else:
+        # Tela do Jogo
+        screen.blit("background", (0, 0))
+        player.draw()
+        for enemy in enemies:
+            enemy.draw()  # Desenha inimigos
+        screen.draw.text("Jogo em Andamento!", (10, 10), color="white")
