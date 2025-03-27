@@ -1,3 +1,4 @@
+(Nessa versão corrrigir os comandos up e down, adicionar moedas e pontuar)
 import pgzrun
 from random import randint
 
