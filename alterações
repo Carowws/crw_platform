@@ -1,0 +1,98 @@
+import pgzrun
+from random import randint
+
+# Configurações da Janela
+WIDTH = 800
+HEIGHT = 400
+TITLE = "Cute Platformer"
+
+# Variáveis e Estados do Jogo
+game_active = False
+music_on = True
+
+# Sprites e Sons
+player = Actor("player_stand", (100, 300))  # Personagem inicial
+ground_level = HEIGHT - 50  # Nível do chão (posição Y)
+
+# Plataformas
+class Platform(Actor):
+    def __init__(self, image, pos):
+        super().__init__(image, pos)
+
+platforms = [Platform("platform_image", (100, 350)), Platform("platform_image", (400, 250))]
+
+# Inimigos
+class Enemy(Actor):
+    def __init__(self, image, pos):
+        super().__init__(image, pos)
+        self.speed = randint(2, 4)
+
+    def update(self):
+        self.x += self.speed
+        if self.x >= WIDTH or self.x <= 0:
+            self.speed = -self.speed
+
+enemies = [Enemy("enemy_image", (200, 300)), Enemy("enemy_image", (500, 300))]
+
+# Funções do Menu
+def draw():
+    screen.clear()
+
+    if not game_active:
+        # Tela de Menu
+        screen.draw.text("MENU PRINCIPAL", center=(WIDTH//2, HEIGHT//4), fontsize=50, color="white")
+        screen.draw.text("[S] - Start Game", center=(WIDTH//2, HEIGHT//2), fontsize=30, color="violet")
+        screen.draw.text("[M] - Música: {}".format("ON" if music_on else "OFF"), center=(WIDTH//2, HEIGHT//2 + 40), fontsize=30, color="green")
+        screen.draw.text("[Q] - Quit Game", center=(WIDTH//2, HEIGHT//2 + 80), fontsize=30, color="purple")
+    else:
+        # Tela do Jogo Ativo
+        screen.blit("background", (0, 0))
+        player.draw()
+        for enemy in enemies:
+            enemy.draw()  # Desenha os inimigos
+        for platform in platforms:
+            platform.draw()  # Desenha as plataformas
+        screen.draw.text("Jogo em Andamento!", (10, 10), color="white")
+
+# Atualiza o jogo
+def update():
+    global game_active, music_on
+
+    if not game_active:
+        if keyboard.s:
+            game_active = True
+            if music_on:
+                music.play("background_music")
+        elif keyboard.m:
+            music_on = not music_on
+            if music_on:
+                music.play("background_music")
+            else:
+                music.stop()
+        elif keyboard.q:
+            exit()
+    else:
+        handle_player_movement()
+        for enemy in enemies:
+            enemy.update()  # Atualiza os inimigos
+
+# Lógica de movimento do jogador
+def handle_player_movement():
+    if keyboard.right:
+        player.x += 4
+    if keyboard.left:
+        player.x -= 4
+    if keyboard.up and player.y >= ground_level:
+        player.y -= 10  # Pulo
+    player.y += 3  # Gravidade
+
+    # Verificar colisão com as plataformas
+    for platform in platforms:
+        if player.colliderect(platform):
+            player.y = platform.top  # Colisão com a plataforma
+
+    # Impede que o personagem caia abaixo do chão
+    if player.y >= ground_level:
+        player.y = ground_level
+
+pgzrun.go()
