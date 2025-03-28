@@ -9,8 +9,9 @@ TITLE = "Galaxy Platformer"
 game_active = False
 music_on = True
 score = 0  # Placar do jogo
+lives = 1  # Vidas do jogador
+music_playing = False  # Controle da música
 
-# Configurações do Jogador
 ground_level = HEIGHT - 50
 player = Actor("player_stand", (100, ground_level))
 player.vy = 0  # Velocidade vertical
@@ -24,6 +25,9 @@ def draw():
         screen.draw.text("[S] - Start Game", center=(WIDTH//2, HEIGHT//2), fontsize=30, color="violet")
         screen.draw.text("[M] - Música: {}".format("ON" if music_on else "OFF"), center=(WIDTH//2, HEIGHT//2 + 40), fontsize=30, color="green")
         screen.draw.text("[Q] - Quit Game", center=(WIDTH//2, HEIGHT//2 + 80), fontsize=30, color="purple")
+        
+        if lives <= 0:
+            screen.draw.text("GAME OVER", center=(WIDTH//2, HEIGHT//3), fontsize=80, color="red")
     else:
         player.draw()
         for enemy in enemies:
@@ -35,57 +39,55 @@ def draw():
         for coin in coins:
             coin.draw()
         
-        # Exibir pontuação
+        # Exibir pontuação e vidas
         screen.draw.text(f"Score: {score}", (10, 10), fontsize=30, color="yellow")
+        screen.draw.text(f"Lives: {lives}", (600, 10), fontsize=30, color="red")
 
 def update():
-    global game_active, music_on
+    global game_active, lives, music_on, music_playing
     if not game_active:
         if keyboard.s:
-            game_active = True
+            reset_game()
             if music_on:
+                music.stop()
                 music.play("background_music")
+                music_playing = True
         elif keyboard.m:
             music_on = not music_on
-            if music_on:
+            if music_on and not music_playing:
                 music.play("background_music")
+                music_playing = True
             else:
                 music.stop()
-        elif keyboard.q:
-            exit()
+                music_playing = False
     else:
         handle_player_movement()
         check_coin_collision()
+        check_enemy_collision()
         for enemy in enemies:
             enemy.update()
 
 def handle_player_movement():
-    player.vy += 0.8  # Gravidade
+    player.vy += 0.9  # Gravidade
     player.y += player.vy
 
-    # Movimento lateral
     if keyboard.right:
         player.x = min(WIDTH, player.x + 4)
     if keyboard.left:
         player.x = max(0, player.x - 4)
-
-    # Pulo
     if keyboard.up and is_on_ground():
         player.vy = -12  # Impulso para cima
-
-    # Colisão com plataformas
+    
     for platform in platforms:
         if player.colliderect(platform) and player.vy > 0:
             player.y = platform.top
             player.vy = 0
-
-    # Garante que o jogador não caia do chão
+    
     if player.y >= ground_level:
         player.y = ground_level
         player.vy = 0
 
 def is_on_ground():
-    """Verifica se o jogador está no chão ou em uma plataforma"""
     if player.y >= ground_level:
         return True
     for platform in platforms:
@@ -94,24 +96,44 @@ def is_on_ground():
     return False
 
 def check_coin_collision():
-    """Verifica se o jogador toca nas moedas e remove a moeda"""
     global score
     for coin in coins[:]:
         if player.colliderect(coin):
             coins.remove(coin)
-            score += 10  # Adiciona pontos
+            score += 10
 
-# Criar plataformas em escada e espalhadas como um labirinto
-platforms = [Actor("platform_image", (x * 70, HEIGHT - (y * 50))) for x, y in [(1, 1), (2, 2), (3, 3), (4, 4),
-                                                                                (6, 1), (7, 2), (8, 3), (9, 4),
-                                                                                (3, 5), (5, 6), (7, 7), (2, 8),
-                                                                                (4, 9), (6, 10), (8, 11)]]
+def check_enemy_collision():
+    global lives, game_active, music_playing
+    for enemy in enemies:
+        if player.colliderect(enemy):
+            lives -= 1
+            music.stop()
+            music.play("defeated_music")
+            music_playing = False
+            if lives <= 0:
+                game_active = False
 
-# Criar paredes como obstáculos
-walls = [Actor("wall_image", (randint(100, 600), randint(100, 500))) for _ in range(10)]
+def reset_game():
+    global game_active, score, lives, player, coins, music_playing
+    game_active = True
+    score = 0
+    lives = 1
+    player.pos = (100, ground_level)
+    coins = [Actor("coin_image", (randint(50, WIDTH - 50), randint(50, HEIGHT - 100))) for _ in range(30)]
+    music.stop()
+    music_playing = False
 
-# Criar 25 moedas espalhadas
-coins = [Actor("coin_image", (randint(50, WIDTH - 50), randint(50, HEIGHT - 100))) for _ in range(25)]
+# Criar plataformas alinhadas
+platforms = [Actor("platform_image", (x * 70, HEIGHT - (y * 50))) for x, y in [(1, 1), (2, 2), (3, 3), (4, 4), (5, 5),
+                                                                                (6, 6), (6, 1), (7, 2), (8, 3),
+                                                                                (9, 4), (10, 5), (4, 7), (6, 8),
+                                                                                (8, 9), (10, 10)]]
+
+# Criar paredes alinhadas
+walls = [Actor("wall_image", (x * 80, HEIGHT - (y * 50))) for x, y in [(2, 4), (4, 6), (6, 8), (8, 10)]]
+
+# Criar 30 moedas espalhadas
+coins = [Actor("coin_image", (randint(50, WIDTH - 50), randint(50, HEIGHT - 100))) for _ in range(30)]
 
 # Criar inimigos
 class Enemy(Actor):
