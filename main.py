@@ -16,6 +16,8 @@ ground_level = HEIGHT - 50
 player = Actor("player_stand", (100, ground_level))
 player.vy = 0  # Velocidade vertical
 
+win_message = False  # Controle para exibir mensagem de vitória
+
 def draw():
     screen.clear()
     screen.blit("background", (0, 0))
@@ -42,6 +44,9 @@ def draw():
         # Exibir pontuação e vidas
         screen.draw.text(f"Score: {score}", (10, 10), fontsize=30, color="yellow")
         screen.draw.text(f"Lives: {lives}", (600, 10), fontsize=30, color="red")
+        
+        if win_message:
+            screen.draw.text("GANHOUUUUUUUUUUU", center=(WIDTH//2, HEIGHT//2), fontsize=80, color="red")
 
 def update():
     global game_active, lives, music_on, music_playing
@@ -68,6 +73,7 @@ def update():
             enemy.update()
 
 def handle_player_movement():
+    global win_message
     player.vy += 0.9  # Gravidade
     player.y += player.vy
 
@@ -77,6 +83,9 @@ def handle_player_movement():
         player.x = max(0, player.x - 4)
     if keyboard.up and is_on_ground():
         player.vy = -12  # Impulso para cima
+    if keyboard.up and player.y < 50:  # Ajuste para ativar a vitória no topo da tela
+        player_wins()
+        win_message = True
     
     for platform in platforms:
         if player.colliderect(platform) and player.vy > 0:
@@ -112,9 +121,13 @@ def check_enemy_collision():
             music_playing = False
             if lives <= 0:
                 game_active = False
+                   
+def player_wins():
+    music.stop()
+    music.play("victory_music")
 
 def reset_game():
-    global game_active, score, lives, player, coins, music_playing
+    global game_active, score, lives, player, coins, music_playing, win_message
     game_active = True
     score = 0
     lives = 1
@@ -122,6 +135,7 @@ def reset_game():
     coins = [Actor("coin_image", (randint(50, WIDTH - 50), randint(50, HEIGHT - 100))) for _ in range(30)]
     music.stop()
     music_playing = False
+    win_message = False
 
 # Criar plataformas alinhadas
 platforms = [Actor("platform_image", (x * 70, HEIGHT - (y * 50))) for x, y in [(1, 1), (2, 2), (3, 3), (4, 4), (5, 5),
